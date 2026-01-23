@@ -1,6 +1,6 @@
 # WHAT YOU NEED TO DO TO RUN THIS
 * Fill in the file path to point to the folder with the script in it (see line 16 of the script, must be done in the script file)
-* Put all the layout txt AND xml files in the "layout txts" folder 
+* Put all the layout txt AND xml files in the "layout info files" folder 
 * Put all the ship image files in the "layout images" folder
 * Have the autoBlueprints.xml.append file
 * Make sure the base door and room files (comes in the script folder) exist and have the right folder path ("rooms" folder)
