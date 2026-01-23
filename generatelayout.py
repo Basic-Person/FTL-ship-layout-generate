@@ -1,6 +1,6 @@
 #WHAT YOU NEED TO DO TO RUN THIS
 #Fill in the file path to point to the folder with the script in it (see line 16 of the script, must be done in the script file)
-#Put all the layout txt AND xml files in the "layout txts" folder 
+#Put all the layout txts AND xml files in the "layout info files" folder 
 #Put all the ship image files in the "layout images" folder
 #Have the autoBlueprints.xml.append file
 #Make sure the base door and room files (comes in the script folder) exist and have the right folder path ("rooms" folder)
@@ -108,7 +108,7 @@ for line in autoList:
         print(ship.name)
 
         #read layout file
-        filePath = "layout txts/" + ship.layout + ".txt"
+        filePath = "layout info files/" + ship.layout + ".txt"
         with open(filePath, 'r') as f:
             for x in f:
                 x = x.rstrip('\n')
@@ -239,7 +239,7 @@ for line in autoList:
                     canvas.paste(image, (xcord, ycord), mask=image)
         
         #open xml for image info
-        with open("layout txts/" + ship.layout + '.xml', 'r', encoding='utf-8') as t:
+        with open("layout info files/" + ship.layout + '.xml', 'r', encoding='utf-8') as t:
             for x in t:
                 x = x.rstrip('\n')
                 xmlList.append(x)
@@ -260,4 +260,5 @@ for line in autoList:
                 shipImage.paste(canvas, (-imgx, -imgy), mask=canvas)
 
                 shipImage.save("output/" + ship.name + " layout.png")
+
                 continue
