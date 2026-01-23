@@ -259,5 +259,5 @@ for line in autoList:
                 shipImage.paste(image, (0, 0), mask=image)
                 shipImage.paste(canvas, (-imgx, -imgy), mask=canvas)
 
-                shipImage.save(ship.name + " layout.png")
+                shipImage.save("output/" + ship.name + " layout.png")
                 continue
