@@ -8,19 +8,17 @@
 #All of these files/folder should be in the same location as the script
 
 #Created by Basic Person
+
+#Set to True if you wish to export files using their class name instead of ID
+exportClassName = False
+
 import os
-import sys
 import re
 from PIL import Image
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
-
-#checks if file was dropped
-#try:
-#    droppedFile = sys.argv[1]
-#except IndexError:
-#    print("No file was dropped")
 
 class Room:
     def __init__(self, id, x, y, l, h):
@@ -48,10 +46,11 @@ class System:
         self.room = int(room)
 
 class Ship:
-    def __init__(self, name, layout, img):
+    def __init__(self, name, layout, img, className):
         self.layout = layout
         self.img = "layout images/" + img + "_base.png"
         self.name = name
+        self.className = className
 
 with open("autoBlueprints.xml.append", "r", encoding="utf-8") as f:
     content = f.read()
@@ -69,9 +68,10 @@ for child in root:
         xmlList = []
         systemClassList = []
         skip = False
-        shipInfo = [name, child.attrib["layout"], child.attrib["img"]]
-        ship = Ship(shipInfo[0], shipInfo[1], shipInfo[2])
+        shipInfo = [name, child.attrib["layout"], child.attrib["img"], child[0].text]
+        ship = Ship(shipInfo[0], shipInfo[1], shipInfo[2], shipInfo[3])
         print(ship.name)
+        print(ship.className)
 
         #read layout file
         filePath = "layout info files/" + ship.layout + ".txt"
@@ -162,8 +162,12 @@ for child in root:
                             if m.name == "medbay" and m.room == system.room:
                                 #if the room is less than 2 width
                                 if i.l == 1:
-                                    xcord = round(i.x * 35 + ((35 * i.l)/2)) - 16
-                                    ycord = round(i.y * 35 + ((35 * i.h/2))) - 4
+                                    if i.h == 1:
+                                        xcord = round(i.x * 35 + ((35 * i.l)/2)) - 16
+                                        ycord = round(i.y * 35 + ((35 * i.h/2))) - 16
+                                    else:
+                                        xcord = round(i.x * 35 + ((35 * i.l)/2)) - 16
+                                        ycord = round(i.y * 35 + ((35 * i.h/2))) - 4
                                 else:
                                     xcord = round(i.x * 35 + ((35 * i.l)/2)) - 4
                                     ycord = round(i.y * 35 + ((35 * i.h/2))) - 16
@@ -175,8 +179,12 @@ for child in root:
                         for m in systemClassList:
                             if m.name == "clonebay" and m.room == system.room:
                                 if i.l == 1:
-                                    xcord = round(i.x * 35 + ((35 * i.l)/2)) - 16
-                                    ycord = round(i.y * 35 + ((35 * i.h/2))) - 28
+                                    if i.h == 1:
+                                        xcord = round(i.x * 35 + ((35 * i.l)/2)) - 16
+                                        ycord = round(i.y * 35 + ((35 * i.h/2))) - 16
+                                    else:
+                                        xcord = round(i.x * 35 + ((35 * i.l)/2)) - 16
+                                        ycord = round(i.y * 35 + ((35 * i.h/2))) - 28
                                 else:
                                     xcord = round(i.x * 35 + ((35 * i.l)/2)) - 28
                                     ycord = round(i.y * 35 + ((35 * i.h/2))) - 16
@@ -213,6 +221,27 @@ for child in root:
                 shipImage.paste(image, (0, 0), mask=image)
                 shipImage.paste(canvas, (-imgx, -imgy), mask=canvas)
 
-                shipImage.save("output/" + ship.name + " layout.png")
+                if exportClassName == True:
+                    nameList = []
+                    for v in ship.className:
+                        if v == "?":
+                            v = "[]"
+                        nameList.append(v)
+                    ship.className = "".join(nameList)
+                        
+                    pathName = "output/" + ship.className + ".png"
+                    path = Path(pathName)
+                    count = 0
+                    while True:
+                        if path.is_file():
+                            count += 1
+                            pathName = f"output/{ship.className}{count}.png"
+                            path = Path(pathName)
+                        else:
+                            break
+                else:
+                    pathName = "output/" + ship.name + ".png"
+                        
 
+                shipImage.save(pathName)
                 continue
