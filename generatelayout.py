@@ -1,19 +1,26 @@
 #WHAT YOU NEED TO DO TO RUN THIS
-#Fill in the file path to point to the folder with the script in it (see line 16 of the script, must be done in the script file)
+#Have Pillow installed (done through pip install pillow)
 #Put all the layout txts AND xml files in the "layout info files" folder 
 #Put all the ship image files in the "layout images" folder
-#Have the autoBlueprints.xml.append file
+#Have the autoBlueprints.xml.append file in the same folder as the script
 #Make sure the base door and room files (comes in the script folder) exist and have the right folder path ("rooms" folder)
 #Make sure the base system files (comes in the script folder) exist and have the right folder path ("icons" folder)
 #All of these files/folder should be in the same location as the script
 
 #Created by Basic Person
 import os
+import sys
 import re
 from PIL import Image
+import xml.etree.ElementTree as ET
 
-#TODO PUT PATH HERE
-os.chdir("NEED FILE PATH")
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+#checks if file was dropped
+#try:
+#    droppedFile = sys.argv[1]
+#except IndexError:
+#    print("No file was dropped")
 
 class Room:
     def __init__(self, id, x, y, l, h):
@@ -33,64 +40,28 @@ class Door:
 
 class System:
     def __init__(self, name, room, start):
-        temproom = re.findall(r'\d+', room)
         if "true" in start:
             self.start = True
         if "false" in start:
             self.start = False
-        self.name = name.lstrip("<")
-        self.room = int(temproom[0])
+        self.name = name
+        self.room = int(room)
 
 class Ship:
     def __init__(self, name, layout, img):
-        self.layout = layout[8:-1]
-        self.img = "layout images/" + img[5:-2] + "_base.png"
-        self.name = name[6:-1]
+        self.layout = layout
+        self.img = "layout images/" + img + "_base.png"
+        self.name = name
 
+with open("autoBlueprints.xml.append", "r", encoding="utf-8") as f:
+    content = f.read()
 
-autoList = []
-autoPath = "autoBlueprints.xml.append"
-
-#read auto file
-with open(autoPath, 'r', encoding="utf-8") as f:
-    for x in f:
-        x = x.rstrip('\n')
-        x = x.lstrip()
-        autoList.append(x)
-
-#go through auto file and remove comments
-goodAutoList = []
-comment = False
-
-for line in autoList:
-    while True:
-        if comment == False:
-            start = line.find("<!--")
-            if start == -1:
-                goodAutoList.append(line)
-                break
-            else:
-                end = line.find("-->", start + 4)
-                if end == -1:
-                    line = line[:start]
-                    comment = True
-                    break
-                else:
-                    line = line[:start] + line[end + 3:]
-        else:
-            end = line.find("-->")
-            if end == -1:
-                line = ""
-                break
-            else:
-                line = line[end + 3:]
-                comment = False
-autoList = goodAutoList
+root=ET.fromstring(content)
 
 #read through the autofile for info
-for line in autoList:
-    #first line need info
-    if "<shipBlueprint" in line:
+for child in root:
+    if child.tag == "shipBlueprint":
+        name = child.attrib["name"]
         counter = 0
         roomList = []
         doorList = []
@@ -98,13 +69,8 @@ for line in autoList:
         xmlList = []
         systemClassList = []
         skip = False
-        for line2 in autoList[autoList.index(line):]:
-            counter += 1
-            if "</shipBlueprint>" in line2:
-                shipList = autoList[autoList.index(line):autoList.index(line) + counter]
-
-        shipInfo = shipList[0].split()
-        ship = Ship(shipInfo[1], shipInfo[2], shipInfo[3])
+        shipInfo = [name, child.attrib["layout"], child.attrib["img"]]
+        ship = Ship(shipInfo[0], shipInfo[1], shipInfo[2])
         print(ship.name)
 
         #read layout file
@@ -168,28 +134,15 @@ for line in autoList:
             image = Image.open(file).convert('RGBA')
             canvas.paste(image, (realx, realy), mask=image)
 
-
         #add systems
-        for line2 in shipList:
-            if "<systemList>" in line2:
-                sys1 = shipList.index(line2)
-            if "</systemList>" in line2:
-                sys2 = shipList.index(line2)
-        systemList = shipList[sys1 + 1:sys2]
-
-        for line2 in systemList:
-            #still breaks when there is a space for some reason
-            if "</systemList>" in line2:
-                continue
-            if len(line2) == 0:
-                continue
-            sl = line2.split()
-            print(sl)
-            if len(sl) == 4:
-                sl.append("true")
-            system = System(sl[0], sl[3], sl[4])
-            systemClassList.append(system)
-
+        for subchild in child:
+            if subchild.tag == "systemList":
+                for system in subchild:
+                    try:
+                        [system.attrib["start"]]
+                    except:
+                        system.attrib.update({"start": "true"})
+                    systemClassList.append(System(system.tag, system.attrib["room"], system.attrib["start"]))
 
         for i in roomList:
             for system in systemClassList:
@@ -198,7 +151,7 @@ for line in autoList:
 
                 if system.start == False:
                     rc, gc, bc, ac = image.split()
-                    rc = rc.point(lambda p: int(p*20))
+                    rc = rc.point(lambda p: int(p+200))
                     image = Image.merge('RGBA', (rc, gc, bc, ac))
 
                 if i.id == system.room:
@@ -240,19 +193,20 @@ for line in autoList:
         
         #open xml for image info
         with open("layout info files/" + ship.layout + '.xml', 'r', encoding='utf-8') as t:
-            for x in t:
-                x = x.rstrip('\n')
-                xmlList.append(x)
-        
-        #find image line
-        for line2 in xmlList:
-            if "<img" in line2:
-                imageStats = line2.split()
+            content = t.read()
 
-                imgx = int(''.join(re.findall(r'-?\d+', imageStats[1])))
-                imgy = int(''.join(re.findall(r'-?\d+', imageStats[2])))
-                imgl = int(''.join(re.findall(r'\d+', imageStats[3])))
-                imgh = int(''.join(re.findall(r'\d+', imageStats[4])))
+        content = re.sub(r"<\?xml.*?\?>", "", content).strip()
+        wrapped = f"<root>\n{content}\n</root>"
+        imageRoot=ET.fromstring(wrapped)
+
+        for imageChild in imageRoot:
+            if imageChild.tag == "img":
+                imageStats = [imageChild.attrib["x"], imageChild.attrib["y"], imageChild.attrib["w"], imageChild.attrib["h"]]
+
+                imgx = int(''.join(re.findall(r'-?\d+', imageStats[0])))
+                imgy = int(''.join(re.findall(r'-?\d+', imageStats[1])))
+                imgl = int(''.join(re.findall(r'\d+', imageStats[2])))
+                imgh = int(''.join(re.findall(r'\d+', imageStats[3])))
 
                 shipImage = Image.new('RGBA', (imgl, imgh))
                 image = Image.open(ship.img).convert('RGBA')
